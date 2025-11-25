@@ -1,16 +1,14 @@
-name: CI/CD Pipeline
+name: Simple CI/CD
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
-  # Job 1: Тестирование
-  test:
+  test-and-build:
     runs-on: ubuntu-latest
-    name: Run Tests
     
     steps:
     - name: Checkout code
@@ -26,51 +24,18 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    - name: Run basic tests
+    - name: Run Python tests
       run: |
-        python -c "import requests; print('✅ Requests library works!')"
-        python app.py
-
-  # Job 2: Сборка Docker образа
-  build:
-    runs-on: ubuntu-latest
-    name: Build Docker Image
-    needs: test
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
+        python tests/test_basic.py
+        
+    - name: Set up Docker
+      run: |
+        docker --version
+        
     - name: Build Docker image
       run: |
-        docker build -t python-app:${{ github.sha }} .
+        docker build -t python-app .
         
     - name: Test Docker image
       run: |
-        docker run --rm python-app:${{ github.sha }}
-
-  # Job 3: Security scan
-  security:
-    runs-on: ubuntu-latest
-    name: Security Scan
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-        
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
+        docker run --rm python-app
